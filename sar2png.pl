@@ -161,7 +161,7 @@ sub ramstat {
 		my @swapinput = split(' ', `/usr/sbin/swap -s`);
 		my $swapsize = $swapinput[1];
 		$swapsize =~ tr/[0-9]//cd;
-		$swapsize = int($swapsize / 1024 / 1024);	# GByte
+		$swapsize = int($swapsize / (1024 ** 2));	# GByte
 
 		my $swapfree;
 		my $swapused;
@@ -182,10 +182,10 @@ sub ramstat {
 
 			@current = split(' ', $line);
 
-			$memfree = ($current[1] * $pagesize) / 1024 / 1024 / 1024;
+			$memfree = ($current[1] * $pagesize) / (1024 ** 3);
 			$memused = int($memsize - $memfree);
 			
-			$swapfree = ($current[2] * $pagesize) / 1024 / 1024 / 1024 / 1024 / 1024;
+			$swapfree = ($current[2] * $pagesize) / (1024 ** 5);
 			$swapused = int($swapsize - $swapfree);
 
 			my $memusedpt = int((100 / $memsize) * $memused);
