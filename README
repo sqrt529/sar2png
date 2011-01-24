@@ -1,0 +1,14 @@
+Usage: ./sar2png.pl  -u | -r  | [ -s | -x | -y | -o | -h ]
+
+ -u: CPU
+ -r: RAM
+ -s: skip every x tick
+ -h: this message
+ -x: height
+ -y: width
+ -o: outpath
+
+ Example: ./sar2png.pl -u -x 480 -y 640 -s 4 -o /home/stats/
+
+
+You must have installed the CPAN module Chart::Lines to use this program.
