@@ -1,0 +1,13 @@
+sar2png.pl Changelog
+====================
+
+Version: 1.1 - 14.11.2011
+-------------------------
+
++ Added support for network statistics (this feature is only supported at GNU/Linux)
++ Added default parameter 'precision' (The number of numerals after the decimal pointprecision (set to 1))
+
+Version: 1.0 - 22.09.2010
+-------------------------
+
++ First release

@@ -15,8 +15,6 @@
 # if not, see <http://www.gnu.org/licenses/>.
 #
 # --
-# 
-# Version: 1.0 - 22.09.2010
 #
 # Successfully tested on Debian GNU/Linux 5.0 and Sun Solaris 5.10
 #
@@ -24,6 +22,9 @@
 # On Arch GNU/Linux systems the sysstat package is in the community repository
 #
 # Uses Chart::Lines from CPAN (http://search.cpan.org/~chartgrp/Chart-2.4.1/Chart.pod)
+#
+# Version: 1.1 - 14.11.2011
+# See CHANGELOG for changes
 
 use warnings;
 use strict;
@@ -32,7 +33,7 @@ use Getopt::Std;
 use Sys::Hostname;
 use POSIX;
 
-our ($opt_u, $opt_r, $opt_h, $opt_s, $opt_x, $opt_y, $opt_o);	# The commandline options
+our ($opt_u, $opt_r, $opt_h, $opt_s, $opt_x, $opt_y, $opt_o, $opt_n);	# The commandline options
 
 my @uname = uname();		# Like uname -a
 my $sysname = $uname[0];	# Kind of system (Linux or SunOS)
@@ -63,15 +64,15 @@ if (length($day) < 2) {
 
 # The usage message
 sub usage {
-	print "Usage: $0  -u | -r  | [ -s | -x | -y | -o | -h ]\n";
-	print " -u: CPU, -r: RAM, -s: skip every x tick, -h: this message\n";
+	print "Usage: $0  -u | -r | -n <iface> | [ -s | -x | -y | -o | -h ]\n";
+	print " -u: CPU, -r: RAM, -n: NET, -s: skip every x tick, -h: this message\n";
 	print " -x: height, -y: width, -o outpath\n\n";
 	print "Example; $0 -u -x 480 -y 640 -s 4 -o /home/stats/\n";
 	exit (0);
 }
 
 # Initialize options or print usage message (also print the usage message if unknown options are given)
-if ( (!(getopts("urhs:x:y:o:"))) || (defined($opt_h)) ) {
+if ( (!(getopts("urhs:x:y:o:n:"))) || (defined($opt_h)) ) {
 	usage();
 }
 
@@ -199,6 +200,33 @@ sub ramstat {
 	}
 }
 
+sub netstat {
+	@input = `$sar -n DEV`;
+	$file = "$opt_n-".$file;
+
+	if ($sysname eq "Linux") {
+		foreach my $line (@input) {
+			chomp($line);
+
+			if (($line =~ /$opt_n/) and ($line =~ /^\d/)) {
+				@current = split(' ', $line);
+
+				push @{$data[0]}, $current[0];  # time
+				push @{$data[1]}, $current[2];  # rxpck/s
+				push @{$data[2]}, $current[3];  # txpck/s
+				push @{$data[3]}, $current[4];  # rxkB/s
+				push @{$data[4]}, $current[5];  # txkB/s
+				push @{$data[5]}, $current[6];  # rxcmp/s
+				push @{$data[6]}, $current[7];  # txcmp/s
+				push @{$data[7]}, $current[8];  # rxmcst/s
+			}
+		}
+	}
+	else {
+		die "Sorry, net statistics are working only for GNU/Linux at the moment...\n";
+	}
+}
+
 if (defined($opt_u)) {
 	@legend = ('Usr', 'Sys', 'Idle');
 	cpustat();
@@ -206,6 +234,10 @@ if (defined($opt_u)) {
 elsif (defined($opt_r)) {
 	@legend = ('RAM', 'Swap');
 	ramstat();
+}
+elsif (defined($opt_n)) {
+	@legend = ('rxpck/s', 'txpck/s', 'rxkB/s', 'txkB/s', 'rxcmp/s', 'txcmp/s', 'rxmcst/s');
+	netstat();
 }
 else {
 	usage();
@@ -227,6 +259,7 @@ $LineDiagram->set('colors' => { 'background' => [255,255,255], 'text' => [000,00
 $LineDiagram->set('grid_lines' => 'true');
 $LineDiagram->set('x_ticks' => 'vertical');
 $LineDiagram->set('brush_size' => 1);
+$LineDiagram->set('precision' => 1);
 $LineDiagram->set('legend_labels' => \@legend);
 
 if (defined($opt_s)) {
