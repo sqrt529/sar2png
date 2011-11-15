@@ -1,6 +1,11 @@
 sar2png.pl Changelog
 ====================
 
+Version: 1.1.1 - 15.11.2011
+---------------------------
+
++ The chart legend now shows average values
+
 Version: 1.1 - 14.11.2011
 -------------------------
 

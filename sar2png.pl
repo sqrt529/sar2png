@@ -23,7 +23,7 @@
 #
 # Uses Chart::Lines from CPAN (http://search.cpan.org/~chartgrp/Chart-2.4.1/Chart.pod)
 #
-# Version: 1.1 - 14.11.2011
+# Version: 1.1.1 - 15.11.2011
 # See CHANGELOG for changes
 
 use warnings;
@@ -45,6 +45,20 @@ my @legend;		# Legend labels of the chart
 my $height = 320;	# default height of the png
 my $width = 480;	# default width of the png
 my $sar;		# predefinition only :-)
+
+my $count = 0;
+my $rxKBsAvg = 0;
+my $txKBsAvg = 0;
+my $rxPcksAvg = 0;
+my $txPcksAvg = 0;
+my $rxCmpsAvg = 0;
+my $txCmpsAvg = 0;
+my $rxMcstsAvg = 0;
+my $usrAvg = 0;
+my $sysAvg = 0;
+my $idleAvg = 0;
+my $memAvg = 0;
+my $swapAvg = 0;
 
 my @d = localtime(time);	# Time since The Epoch in a 9-element list 
 my $year = $d[5] + 1900;
@@ -87,6 +101,8 @@ sub is_numeric {
 	}   
 }
 
+$ENV{'LANG'} = "C";
+
 # Where we can found the sar binary on the system
 if ($sysname eq "Linux") {
 	$sar = "/usr/bin/sar";
@@ -114,7 +130,17 @@ sub cpustat {
 			push @{$data[1]}, $current[2];	# usr
 			push @{$data[2]}, $current[4];	# sys
 			push @{$data[3]}, $current[7];	# idle
+
+			$usrAvg += $current[2];
+			$sysAvg += $current[4];
+			$idleAvg += $current[7];
+
+			$count++;
 		}
+
+		$usrAvg = sprintf("%.2f", $usrAvg / $count);
+		$sysAvg = sprintf("%.2f", $sysAvg / $count);
+		$idleAvg = sprintf("%.2f", $idleAvg / $count);
 	}
 	elsif ($sysname eq "SunOS") {
 		foreach my $line (@input) {
@@ -128,7 +154,17 @@ sub cpustat {
 			push @{$data[1]}, $current[1];	# usr
 			push @{$data[2]}, $current[2];	# sys
 			push @{$data[3]}, $current[4];	# idle
+
+			$usrAvg += $current[1];
+			$sysAvg += $current[2];
+			$idleAvg += $current[4];
+
+			$count++;
 		}
+
+		$usrAvg = sprintf("%.2f", $usrAvg / $count);
+		$sysAvg = sprintf("%.2f", $sysAvg / $count);
+		$idleAvg = sprintf("%.2f", $idleAvg / $count);
 	}
 }
 
@@ -147,7 +183,15 @@ sub ramstat {
 			push @{$data[0]}, $current[0];	# time
 			push @{$data[1]}, $current[3];	# mem
 			push @{$data[2]}, $current[8];	# swap
+
+			$memAvg += $current[3];
+			$swapAvg += $current[8];
+
+			$count++;
 		}
+
+		$memAvg = sprintf("%.2f", $memAvg / $count);
+		$swapAvg = sprintf("%.2f", $swapAvg / $count);
 	}
 	elsif ($sysname eq "SunOS") {
 		# You can do the same with 7 lines of code on GNU/Linux :-)
@@ -196,7 +240,15 @@ sub ramstat {
 			push @{$data[0]}, $current[0];	# time
 			push @{$data[1]}, $memusedpt;	# mem
 			push @{$data[2]}, $swapusedpt;	# swap
+
+			$memAvg += $memusedpt;
+			$swapAvg += $swapusedpt;
+
+			$count++;
 		}
+
+		$memAvg = sprintf("%.2f", $memAvg / $count);
+		$swapAvg = sprintf("%.2f", $swapAvg / $count);
 	}
 }
 
@@ -219,8 +271,26 @@ sub netstat {
 				push @{$data[5]}, $current[6];  # rxcmp/s
 				push @{$data[6]}, $current[7];  # txcmp/s
 				push @{$data[7]}, $current[8];  # rxmcst/s
+
+				$rxPcksAvg += $current[2];
+				$txPcksAvg += $current[3];
+				$rxKBsAvg += $current[4];
+				$txKBsAvg += $current[5];
+				$rxCmpsAvg += $current[6];
+				$txCmpsAvg += $current[7];
+				$rxMcstsAvg += $current[8];
+	
+				$count++;
 			}
 		}
+		
+		$rxPcksAvg = sprintf("%.2f", $rxPcksAvg / $count);
+		$txPcksAvg = sprintf("%.2f", $txPcksAvg / $count);
+		$rxKBsAvg = sprintf("%.2f", $rxKBsAvg / $count);
+		$txKBsAvg = sprintf("%.2f", $txKBsAvg / $count);
+		$rxCmpsAvg = sprintf("%.2f", $rxCmpsAvg / $count);
+		$txCmpsAvg = sprintf("%.2f", $txCmpsAvg / $count);
+		$rxMcstsAvg = sprintf("%.2f", $rxMcstsAvg / $count);
 	}
 	else {
 		die "Sorry, net statistics are working only for GNU/Linux at the moment...\n";
@@ -228,16 +298,17 @@ sub netstat {
 }
 
 if (defined($opt_u)) {
-	@legend = ('Usr', 'Sys', 'Idle');
 	cpustat();
+	@legend = ("Usr (Avg: $usrAvg)", "Sys (Avg: $sysAvg)", "Idle (Avg: $idleAvg)");
 }
 elsif (defined($opt_r)) {
-	@legend = ('RAM', 'Swap');
 	ramstat();
+	@legend = ("RAM (Avg: $memAvg)", "Swap (Avg: $swapAvg)");
 }
 elsif (defined($opt_n)) {
-	@legend = ('rxpck/s', 'txpck/s', 'rxkB/s', 'txkB/s', 'rxcmp/s', 'txcmp/s', 'rxmcst/s');
 	netstat();
+	@legend = ("rxpck/s (Avg: $rxPcksAvg)", "txpck/s (Avg: $txPcksAvg)", "rxkB/s (Avg: $rxKBsAvg)", "txkB/s (Avg: $txKBsAvg)", "rxcmp/s (Avg: $rxCmpsAvg)", "txcmp/s (Avg: $txCmpsAvg)", "rxmcst/s (Avg: $rxMcstsAvg)");
+
 }
 else {
 	usage();
