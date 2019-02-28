@@ -65,7 +65,7 @@ my $year = $d[5] + 1900;
 my $month = $d[4] + 1;
 my $day = $d[3];
 
-my $file = $hostname."-".$year."-".$month."-".$day.".png";	# Filename of output png
+my $file = sprintf("%s-%04d-%02d-%02d.png", $hostname, $year, $month, $day); # Filename of output png
 
 # If month or day are single digits add a 0 to the digit
 if (length($month) < 2) {
